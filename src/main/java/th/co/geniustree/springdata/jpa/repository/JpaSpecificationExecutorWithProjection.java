@@ -20,6 +20,8 @@ public interface JpaSpecificationExecutorWithProjection<T> {
 
     <R> Page<R> findAll(Specification<T> spec, Class<R> projectionClass, Pageable pageable);
 
+    <R> Page<R> findFirstPage(Specification<T> spec, Class<R> projectionClass, Pageable pageable);
+
     <R> Page<R> findAll(Specification<T> spec, Class<R> projectionType, String namedEntityGraph, EntityGraph.EntityGraphType type, Pageable pageable);
 
     <R> Page<R> findAll(Specification<T> spec, Class<R> projectionClass, JpaEntityGraph dynamicEntityGraph, Pageable pageable);

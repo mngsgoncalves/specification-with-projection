@@ -1,5 +1,6 @@
 package th.co.geniustree.springdata.jpa.repository.support;
 
+import org.hibernate.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -17,9 +18,15 @@ import th.co.geniustree.springdata.jpa.repository.JpaSpecificationExecutorWithPr
 
 import javax.persistence.*;
 import java.io.Serializable;
+import java.sql.Connection;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoField;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Created by pramoth on 9/29/2016 AD.
@@ -56,6 +63,26 @@ public class JpaSpecificationExecutorWithProjectionImpl<T, ID extends Serializab
     public <R> Page<R> findAll(Specification<T> spec, Class<R> projectionType, Pageable pageable) {
         TypedQuery<T> query = getQuery(spec, pageable);
         return readPageWithProjection(spec, projectionType, pageable, query);
+    }
+
+    @Override
+    public <R> Page<R> findFirstPage(Specification<T> spec, Class<R> projectionType, Pageable pageable) {
+
+        int isolationLevel = entityManager.unwrap(Session.class).doReturningWork(Connection::getTransactionIsolation);
+        System.out.println("Isolation Level in use = " + isolationLevel);
+
+        LocalDateTime start = LocalDateTime.now();
+        TypedQuery<T> query = getQuery(spec, pageable);
+        query.setFirstResult(0);
+        query.setMaxResults(pageable.getPageSize());
+        LocalDateTime queryStart = LocalDateTime.now();
+        List<T> resultE = query.getResultList();
+        LocalDateTime endQuery = LocalDateTime.now();
+        System.out.println("Result size: " + resultE.size());
+        List<R> result = resultE.stream().map(item -> projectionFactory.createProjection(projectionType, item)).collect(Collectors.toList());
+        LocalDateTime endProcess = LocalDateTime.now();
+        System.out.println("Query time: " + ChronoUnit.MILLIS.between(start, endQuery) + "Query executin time: " + ChronoUnit.MILLIS.between(queryStart, endQuery) + " - Total time: " + ChronoUnit.MILLIS.between(start, endProcess));
+        return new PageImpl<>(result, pageable, result.size());
     }
 
     @Override
